@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-17T09:24:29.966Z",
+  "generatedAt": "2026-11-17T11:25:20.681Z",
   "target": "https://applytrack.julietous.workers.dev",
   "playwright": {
     "passed": 179,
     "failed": 0,
     "flaky": 0,
     "skipped": 0,
-    "durationMs": 65487,
+    "durationMs": 72561,
     "projects": {
       "api": 51,
       "chromium": 43,
@@ -19,6 +19,6 @@
     "requests": 17,
     "assertions": 69,
     "failedAssertions": 0,
-    "durationMs": 2085
+    "durationMs": 2043
   }
 }
