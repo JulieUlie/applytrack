@@ -28,7 +28,7 @@ The suite covers what job postings for QA and test automation engineers ask for:
 | --- | --- |
 | Playwright with TypeScript | `tests/`, one config with several projects |
 | REST API testing | `tests/api/` with Playwright's `request` fixture |
-| Postman and Newman | `postman/` collection, run with Newman locally and in CI |
+| Postman and Newman | `postman/` collection, run with Newman locally and in CI ([open in Postman](https://www.postman.com/julie-ulies-team/julie-toussaint-public/collection/adzh7vf/applytrack-api)) |
 | Swagger / OpenAPI | `site/openapi.json` + custom `toMatchSchema` matcher (`tests/support/contract.ts`) |
 | Authentication flows | `tests/api/auth-and-workspaces.spec.ts` |
 | Page objects, fixtures, test data | `tests/pages/board-page.ts`, `tests/fixtures.ts`, `tests/support/data.ts` |
