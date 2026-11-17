@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tests · ApplyTrack</title>
+  <meta name="description" content="How ApplyTrack is tested: Playwright UI and API tests in TypeScript, plus a Postman collection run with Newman.">
+  <meta property="og:image" content="https://applytrack.julietous.workers.dev/og-20261117b.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=6">
+</head>
+<body class="screen">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="ApplyTrack home"><img src="/favicon.svg" alt="" width="28" height="28"> ApplyTrack</a>
+    <nav aria-label="Main"><a href="/">Overview</a><a href="/board">Board</a><a href="/api">API</a><a href="/tests" aria-current="page">Tests</a></nav>
+  </header>
+
+  <main class="doc-shell">
+    <div class="doc-head">
+      <div>
+        <h1>How this app is tested</h1>
+        <p class="lede">The app is small on purpose. The point is the test suite around it: the same behaviour checked through the browser with Playwright and through the API with Postman.</p>
+      </div>
+      <div class="link-row">
+        <a class="btn primary" href="/reports/playwright/">Playwright report</a>
+        <a class="btn line" href="/reports/newman/">Newman report</a>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Testing">
+      <button type="button" role="tab" id="tab-how" aria-controls="panel-how">How it works</button>
+      <button type="button" role="tab" id="tab-run" aria-controls="panel-run">Latest run</button>
+      <button type="button" role="tab" id="tab-market" aria-controls="panel-market">What jobs ask for</button>
+      <button type="button" role="tab" id="tab-postman" aria-controls="panel-postman">Postman</button>
+    </div>
+
+    <section class="panel" role="tabpanel" id="panel-how" aria-labelledby="tab-how" tabindex="0">
+      <div class="flow" aria-label="How the parts connect">
+        <div class="node pw">Playwright <b>UI test</b><small>clicks and types</small></div>
+        <span class="arrow" aria-hidden="true">→</span>
+        <div class="node">Board <b>in the browser</b><small>Chromium, Firefox, WebKit</small></div>
+        <span class="arrow" aria-hidden="true">→</span>
+        <div class="node rest">REST API <b>/api</b><small>JSON over HTTP</small></div>
+        <span class="arrow back" aria-hidden="true">←</span>
+        <div class="node pw">Playwright <b>API test</b> &amp; Postman<small>call it directly</small></div>
+      </div>
+      <ol class="steps">
+        <li><b>The board is only a client.</b> Every click becomes an HTTP call to the REST API: GET to read, POST to create, PATCH to change, DELETE to remove. Open the board and watch the <a href="/board">Under the hood</a> panel.</li>
+        <li><b>A UI test acts like a user.</b> Playwright opens a real browser, finds buttons and fields by their role and label, and waits by itself until the page is ready. No sleeps.</li>
+        <li><b>An API test skips the browser.</b> It sends the request directly and checks the status code, the headers and the JSON, also against the OpenAPI spec. Fast, so it covers many cases.</li>
+        <li><b>Combine them.</b> A test creates its data with one API call, then checks the screen. Every test gets its own workspace, so all of them run in parallel.</li>
+      </ol>
+    </section>
+
+    <section class="panel" role="tabpanel" id="panel-run" aria-labelledby="tab-run" tabindex="0" hidden>
+      <p id="run-meta">Loading the latest results…</p>
+      <div class="metrics" id="metrics"></div>
+      <div class="two-col">
+        <ul class="small-list">
+          <li><b>API</b>: CRUD, filters, sorting, auth, workspace isolation, a data-driven table of invalid input, contract checks, response-time budgets.</li>
+          <li><b>UI</b>: a page object, role and label locators, network mocking, axe accessibility scans, a keyboard-only flow.</li>
+        </ul>
+        <ul class="small-list">
+          <li><b>Browsers</b>: Chromium, Firefox, WebKit and an emulated Pixel 7.</li>
+          <li><b>Reports</b>: every test keeps a trace and a screenshot. Open a test in the Playwright report to step through it.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel" role="tabpanel" id="panel-market" aria-labelledby="tab-market" tabindex="0" hidden>
+      <p class="small">Built around what postings for QA and test automation engineers ask for in 2026, in Belgium and abroad.</p>
+      <dl class="market-grid">
+        <div><dt>Playwright with TypeScript</dt><dd>The whole suite, one config with several projects</dd></div>
+        <div><dt>REST API testing</dt><dd>Playwright <code>request</code> tests and the Postman collection</dd></div>
+        <div><dt>Postman and Newman</dt><dd>Chained requests, <code>pm.test</code>, run in CI</dd></div>
+        <div><dt>Swagger / OpenAPI</dt><dd><a href="/openapi.json">openapi.json</a> and a <code>toMatchSchema</code> contract matcher</dd></div>
+        <div><dt>Authentication</dt><dd>Bearer tokens: missing, malformed, unknown, revoked</dd></div>
+        <div><dt>Page objects, fixtures</dt><dd><code>BoardPage</code>, custom fixtures, a test data builder</dd></div>
+        <div><dt>Isolation, parallel runs</dt><dd>A fresh workspace per test, created through the API</dd></div>
+        <div><dt>Network mocking</dt><dd><code>page.route</code>: errors, network down, stubbed data</dd></div>
+        <div><dt>Cross-browser and mobile</dt><dd>Chromium, Firefox, WebKit, Pixel 7</dd></div>
+        <div><dt>CI/CD</dt><dd>GitHub Actions runs both suites on every push</dd></div>
+        <div><dt>Negative and boundary tests</dt><dd>Invalid input table, malformed bodies, exact limits</dd></div>
+        <div><dt>Accessibility</dt><dd>axe-core WCAG 2.1 AA scans, keyboard-only flow</dd></div>
+        <div><dt>Performance awareness</dt><dd>Response-time budgets, 20 parallel creates</dd></div>
+        <div><dt>Debugging and reporting</dt><dd>HTML reports with traces and screenshots</dd></div>
+        <div class="todo"><dt>Not covered yet</dt><dd>BDD / Cucumber, visual regression, SQL checks</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel" role="tabpanel" id="panel-postman" aria-labelledby="tab-postman" tabindex="0" hidden>
+      <div class="two-col">
+        <ol class="steps">
+          <li><b>Setup</b>: health check, then a new workspace. Its token is saved in a collection variable.</li>
+          <li><b>CRUD</b>: create, read, list, filter, update, stats, delete. The new id is passed from one request to the next.</li>
+          <li><b>Negative cases</b>: no token, invalid JSON, validation errors, a wrong method.</li>
+          <li><b>Teardown</b>: delete the workspace and check that the token stops working.</li>
+        </ol>
+        <div>
+          <pre><code>// test script on "Create application"
+pm.test('status 201', () =>
+  pm.response.to.have.status(201));
+pm.test('body matches the schema', () =>
+  pm.response.to.have.jsonSchema(schema));
+pm.collectionVariables.set(
+  'applicationId', pm.response.json().id);</code></pre>
+          <p class="small">Every request also checks a response-time budget. <a href="/api">Download the collection</a> to run it in Postman, or run it with Newman: <code>npm run postman</code>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/tabs.js?v=2"></script>
+  <script type="module">
+    const fmt = (ms) => (ms >= 60000 ? `${(ms / 60000).toFixed(1)} min` : `${(ms / 1000).toFixed(1)} s`);
+    const metric = (value, label, cls = "") => `<div class="metric ${cls}"><b>${value}</b><span>${label}</span></div>`;
+    try {
+      const s = await fetch("/reports/summary.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
+      const when = new Date(s.generatedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
+      document.querySelector("#run-meta").textContent = `Run on ${when} against ${s.target}.`;
+      const p = s.playwright, n = s.newman;
+      document.querySelector("#metrics").innerHTML = [
+        p && metric(p.passed, "Playwright tests passed", p.failed ? "" : "ok"),
+        p && metric(p.failed, "Playwright tests failed", p.failed ? "bad" : ""),
+        p && metric(fmt(p.durationMs), "Playwright run time"),
+        n && metric(`${n.assertions - n.failedAssertions}/${n.assertions}`, "Postman assertions passed", n.failedAssertions ? "bad" : "ok"),
+        n && metric(n.requests, "Postman requests"),
+      ].filter(Boolean).join("");
+    } catch {
+      document.querySelector("#run-meta").textContent = "No published run yet.";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ApplyTrack API",
+    "version": "1.0.0",
+    "description": "Job application tracker. Every workspace is isolated by its bearer token and deletes itself after 30 days."
+  },
+  "servers": [
+    { "url": "https://applytrack.julietous.workers.dev", "description": "Live" },
+    { "url": "http://127.0.0.1:8787", "description": "Local (wrangler dev)" }
+  ],
+  "security": [{ "bearer": [] }],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Liveness check",
+        "security": [],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } } } }
+      }
+    },
+    "/api/workspaces": {
+      "post": {
+        "summary": "Create a workspace and get its token",
+        "security": [],
+        "requestBody": { "required": false, "content": { "application/json": { "schema": { "type": "object", "properties": { "seed": { "type": "boolean" } } } } } },
+        "responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NewWorkspace" } } } } }
+      }
+    },
+    "/api/workspace": {
+      "get": {
+        "summary": "Workspace details",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WorkspaceInfo" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "delete": {
+        "summary": "Delete the workspace and all its data",
+        "responses": { "204": { "description": "Deleted" }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+      }
+    },
+    "/api/applications": {
+      "get": {
+        "summary": "List applications",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "$ref": "#/components/schemas/Status" } },
+          { "name": "q", "in": "query", "description": "Search in company, role and location", "schema": { "type": "string", "maxLength": 80 } },
+          { "name": "sort", "in": "query", "schema": { "type": "string", "enum": ["updated", "company", "appliedOn"], "default": "updated" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationList" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Create an application",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationInput" } } } },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": { "Location": { "schema": { "type": "string" } } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Application" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "description": "Workspace is full", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "415": { "description": "Wrong content type", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "422": { "$ref": "#/components/responses/ValidationFailed" }
+        }
+      }
+    },
+    "/api/applications/{id}": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^app_[a-f0-9]{12}$" } }],
+      "get": {
+        "summary": "Get one application",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Application" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "summary": "Update some fields of an application",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationPatch" } } } },
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Application" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationFailed" }
+        }
+      },
+      "delete": {
+        "summary": "Delete one application",
+        "responses": { "204": { "description": "Deleted" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } }
+      }
+    },
+    "/api/stats": {
+      "get": {
+        "summary": "Count per status and response rate",
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Stats" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "bearer": { "type": "http", "scheme": "bearer", "description": "Token from POST /api/workspaces, format at_ + 32 hex characters" } },
+    "responses": {
+      "BadRequest": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Missing, malformed, unknown or expired token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "ValidationFailed": { "description": "Validation failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationError" } } } }
+    },
+    "schemas": {
+      "Status": { "type": "string", "enum": ["wishlist", "applied", "interview", "offer", "rejected"] },
+      "Date": { "type": "string", "pattern": "^(\\d{4}-\\d{2}-\\d{2})?$" },
+      "Health": {
+        "type": "object", "required": ["status", "version", "time"], "additionalProperties": false,
+        "properties": { "status": { "const": "ok" }, "version": { "type": "string" }, "time": { "type": "string", "format": "date-time" } }
+      },
+      "NewWorkspace": {
+        "type": "object", "required": ["token", "createdAt", "expiresAt", "seeded"], "additionalProperties": false,
+        "properties": {
+          "token": { "type": "string", "pattern": "^at_[a-f0-9]{32}$" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "seeded": { "type": "boolean" }
+        }
+      },
+      "WorkspaceInfo": {
+        "type": "object", "required": ["createdAt", "expiresAt", "applications", "limit"], "additionalProperties": false,
+        "properties": {
+          "createdAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "applications": { "type": "integer", "minimum": 0 },
+          "limit": { "type": "integer" }
+        }
+      },
+      "ApplicationInput": {
+        "type": "object", "required": ["company", "role"], "additionalProperties": false,
+        "properties": {
+          "company": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "role": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "status": { "$ref": "#/components/schemas/Status" },
+          "appliedOn": { "$ref": "#/components/schemas/Date" },
+          "location": { "type": "string", "maxLength": 80 },
+          "link": { "type": "string", "maxLength": 300 },
+          "notes": { "type": "string", "maxLength": 1000 }
+        }
+      },
+      "ApplicationPatch": {
+        "type": "object", "minProperties": 1, "additionalProperties": false,
+        "properties": {
+          "company": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "role": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "status": { "$ref": "#/components/schemas/Status" },
+          "appliedOn": { "$ref": "#/components/schemas/Date" },
+          "location": { "type": "string", "maxLength": 80 },
+          "link": { "type": "string", "maxLength": 300 },
+          "notes": { "type": "string", "maxLength": 1000 }
+        }
+      },
+      "Application": {
+        "type": "object",
+        "required": ["id", "company", "role", "status", "appliedOn", "location", "link", "notes", "createdAt", "updatedAt"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^app_[a-f0-9]{12}$" },
+          "company": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "role": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "status": { "$ref": "#/components/schemas/Status" },
+          "appliedOn": { "$ref": "#/components/schemas/Date" },
+          "location": { "type": "string" },
+          "link": { "type": "string" },
+          "notes": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApplicationList": {
+        "type": "object", "required": ["items", "count"], "additionalProperties": false,
+        "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/Application" } }, "count": { "type": "integer", "minimum": 0 } }
+      },
+      "Stats": {
+        "type": "object", "required": ["total", "byStatus", "responseRate"], "additionalProperties": false,
+        "properties": {
+          "total": { "type": "integer", "minimum": 0 },
+          "byStatus": {
+            "type": "object", "required": ["wishlist", "applied", "interview", "offer", "rejected"], "additionalProperties": false,
+            "properties": {
+              "wishlist": { "type": "integer" }, "applied": { "type": "integer" }, "interview": { "type": "integer" },
+              "offer": { "type": "integer" }, "rejected": { "type": "integer" }
+            }
+          },
+          "responseRate": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      },
+      "Error": {
+        "type": "object", "required": ["error"],
+        "properties": { "error": { "type": "string" } }
+      },
+      "ValidationError": {
+        "type": "object", "required": ["error", "fields"],
+        "properties": { "error": { "const": "Validation failed" }, "fields": { "type": "object", "additionalProperties": { "type": "string" } } }
+      }
+    }
+  }
+}

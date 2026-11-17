@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API · ApplyTrack</title>
+  <meta name="description" content="REST API reference for ApplyTrack, with a ready-to-import Postman collection and an OpenAPI spec.">
+  <meta property="og:image" content="https://applytrack.julietous.workers.dev/og-20261117b.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=6">
+</head>
+<body class="screen">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="ApplyTrack home"><img src="/favicon.svg" alt="" width="28" height="28"> ApplyTrack</a>
+    <nav aria-label="Main"><a href="/">Overview</a><a href="/board">Board</a><a href="/api" aria-current="page">API</a><a href="/tests">Tests</a></nav>
+  </header>
+
+  <main class="doc-shell">
+    <div class="doc-head">
+      <div>
+        <h1>REST API</h1>
+        <p class="lede">The board uses this JSON API, and so can you. Each workspace has its own bearer token, so you can create, break and delete data freely.</p>
+      </div>
+      <div class="link-row">
+        <a class="btn primary" href="/downloads/applytrack.postman_collection.json" download>Download Postman collection</a>
+        <a class="btn line" href="/downloads/live.postman_environment.json" download>Environment</a>
+        <a class="btn line" href="/openapi.json">OpenAPI spec</a>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="API reference">
+      <button type="button" role="tab" id="tab-start" aria-controls="panel-start">Quick start</button>
+      <button type="button" role="tab" id="tab-endpoints" aria-controls="panel-endpoints">Endpoints</button>
+      <button type="button" role="tab" id="tab-fields" aria-controls="panel-fields">Fields</button>
+      <button type="button" role="tab" id="tab-errors" aria-controls="panel-errors">Errors</button>
+    </div>
+
+    <section class="panel" role="tabpanel" id="panel-start" aria-labelledby="tab-start" tabindex="0">
+      <div class="two-col">
+        <div>
+          <h2>REST in four words</h2>
+          <ul class="verbs">
+            <li><span class="verb v-get">GET</span> reads data</li>
+            <li><span class="verb v-post">POST</span> creates something new</li>
+            <li><span class="verb v-patch">PATCH</span> changes some fields</li>
+            <li><span class="verb v-delete">DELETE</span> removes it</li>
+          </ul>
+          <p class="small">The answer always has a status code: <code>2xx</code> means it worked, <code>4xx</code> means the request was wrong, <code>5xx</code> means the server failed.</p>
+        </div>
+        <div>
+          <h2>Try it</h2>
+          <pre><code># 1. a workspace with eight example roles
+curl -X POST https://applytrack.julietous.workers.dev/api/workspaces \
+  -H "content-type: application/json" -d '{"seed": true}'
+
+# 2. send the token from the answer
+curl https://applytrack.julietous.workers.dev/api/applications \
+  -H "authorization: Bearer at_…"</code></pre>
+          <p class="small">Or import the Postman collection: it runs all of this in order and checks every answer.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" role="tabpanel" id="panel-endpoints" aria-labelledby="tab-endpoints" tabindex="0" hidden>
+      <div class="table-wrap">
+        <table class="endpoints">
+          <caption class="sr-only">Endpoints</caption>
+          <thead><tr><th scope="col">Endpoint</th><th scope="col">What it does</th><th scope="col">Success</th></tr></thead>
+          <tbody>
+            <tr><td><span class="verb v-get">GET</span><code>/api/health</code></td><td>Liveness check, no token needed</td><td>200</td></tr>
+            <tr><td><span class="verb v-post">POST</span><code>/api/workspaces</code></td><td>New workspace and token; <code>{"seed": true}</code> adds examples</td><td>201</td></tr>
+            <tr><td><span class="verb v-get">GET</span><code>/api/workspace</code></td><td>Created, expiry date, slots used</td><td>200</td></tr>
+            <tr><td><span class="verb v-delete">DELETE</span><code>/api/workspace</code></td><td>Delete the workspace and all its data</td><td>204</td></tr>
+            <tr><td><span class="verb v-get">GET</span><code>/api/applications</code></td><td>List; query <code>status</code>, <code>q</code>, <code>sort</code> (<code>updated</code>, <code>company</code>, <code>appliedOn</code>)</td><td>200</td></tr>
+            <tr><td><span class="verb v-post">POST</span><code>/api/applications</code></td><td>Create; returns the item and a <code>Location</code> header</td><td>201</td></tr>
+            <tr><td><span class="verb v-get">GET</span><code>/api/applications/{id}</code></td><td>One application</td><td>200</td></tr>
+            <tr><td><span class="verb v-patch">PATCH</span><code>/api/applications/{id}</code></td><td>Partial update: send only what changes</td><td>200</td></tr>
+            <tr><td><span class="verb v-delete">DELETE</span><code>/api/applications/{id}</code></td><td>Delete one application</td><td>204</td></tr>
+            <tr><td><span class="verb v-get">GET</span><code>/api/stats</code></td><td>Count per status and response rate</td><td>200</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" role="tabpanel" id="panel-fields" aria-labelledby="tab-fields" tabindex="0" hidden>
+      <div class="two-col">
+        <div class="table-wrap">
+          <table class="endpoints">
+            <caption class="sr-only">Application fields</caption>
+            <thead><tr><th scope="col">Field</th><th scope="col">Rule</th></tr></thead>
+            <tbody>
+              <tr><td><code>company</code></td><td>Required, at most 80 characters</td></tr>
+              <tr><td><code>role</code></td><td>Required, at most 80 characters</td></tr>
+              <tr><td><code>status</code></td><td><code>wishlist</code>, <code>applied</code> (default), <code>interview</code>, <code>offer</code>, <code>rejected</code></td></tr>
+              <tr><td><code>appliedOn</code></td><td>Date <code>YYYY-MM-DD</code>, not in the future</td></tr>
+              <tr><td><code>location</code></td><td>At most 80 characters</td></tr>
+              <tr><td><code>link</code></td><td>An http(s) URL</td></tr>
+              <tr><td><code>notes</code></td><td>At most 1000 characters</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h2>Example</h2>
+          <pre><code>{
+  "company": "Scheldt Systems",
+  "role": "QA Test Automation Engineer",
+  "status": "interview",
+  "appliedOn": "2026-11-06",
+  "location": "Antwerp (hybrid)"
+}</code></pre>
+          <p class="small">Read-only: <code>id</code>, <code>createdAt</code>, <code>updatedAt</code>. Unknown fields are rejected, so a typo never gets lost silently.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" role="tabpanel" id="panel-errors" aria-labelledby="tab-errors" tabindex="0" hidden>
+      <div class="two-col">
+        <div class="table-wrap">
+          <table class="endpoints">
+            <caption class="sr-only">Error status codes</caption>
+            <thead><tr><th scope="col">Status</th><th scope="col">When</th></tr></thead>
+            <tbody>
+              <tr><td>400</td><td>Not valid JSON, or an unknown <code>status</code> or <code>sort</code></td></tr>
+              <tr><td>401</td><td>Missing, malformed, unknown or expired token</td></tr>
+              <tr><td>404</td><td>Application or endpoint does not exist</td></tr>
+              <tr><td>405</td><td>Method not allowed (see the <code>Allow</code> header)</td></tr>
+              <tr><td>409</td><td>Workspace is full (200 applications)</td></tr>
+              <tr><td>415</td><td>Body without <code>content-type: application/json</code></td></tr>
+              <tr><td>422</td><td>Validation failed</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h2>A validation error</h2>
+          <pre><code>HTTP/1.1 422 Unprocessable Content
+{
+  "error": "Validation failed",
+  "fields": {
+    "company": "Required",
+    "link": "Must be an http(s) URL"
+  }
+}</code></pre>
+          <p class="small">Every answer has an <code>x-request-id</code> header. Workspaces delete themselves after 30 days.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/tabs.js?v=2"></script>
+</body>
+</html>

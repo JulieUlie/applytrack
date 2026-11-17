@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ApplyTrack</title>
+  <meta name="description" content="A showcase project by Julie Toussaint: Playwright, TypeScript and REST API testing on a small job application tracker, built around what QA automation roles ask for.">
+  <meta property="og:title" content="ApplyTrack · Playwright and API testing showcase">
+  <meta property="og:description" content="Playwright, TypeScript and REST API testing on a small job application tracker, built around what QA automation roles ask for.">
+  <meta property="og:image" content="https://applytrack.julietous.workers.dev/og-20261117b.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://applytrack.julietous.workers.dev/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=6">
+</head>
+<body class="screen">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="ApplyTrack home"><img src="/favicon.svg" alt="" width="28" height="28"> ApplyTrack</a>
+    <nav aria-label="Main"><a href="/" aria-current="page">Overview</a><a href="/board">Board</a><a href="/api">API</a><a href="/tests">Tests</a></nav>
+  </header>
+
+  <main class="landing">
+    <section class="pitch" aria-labelledby="pitch-title">
+      <p class="eyebrow">Showcase project · Julie Toussaint, test automation engineer</p>
+      <h1 id="pitch-title">Playwright and REST API testing</h1>
+      <p class="lede">Five years of end-to-end test automation in Ranorex, C# and Oracle PL/SQL for Deutsche Bahn's catering logistics. QA automation roles today also ask for Playwright, TypeScript and REST API testing. This project shows those skills: a small job application tracker, with a test suite built around what the job postings ask for.</p>
+      <div class="cta">
+        <a class="btn primary" href="/tests">See how it is tested</a>
+        <a class="btn line" href="/board">Try the app</a>
+        <a class="btn line" href="/api">Explore the API</a>
+      </div>
+      <dl class="proof" id="proof" aria-label="Latest test run">
+        <div><dt>Playwright tests</dt><dd id="proof-pw">125</dd></div>
+        <div><dt>Postman assertions</dt><dd id="proof-pm">69</dd></div>
+        <div><dt>Browsers + phone</dt><dd>3+1</dd></div>
+        <div><dt>Failed</dt><dd id="proof-failed">0</dd></div>
+      </dl>
+      <p class="more"><a href="https://github.com/JulieUlie/applytrack">Source on GitHub</a> · <a href="https://jt.julietous.workers.dev/">Portfolio</a></p>
+    </section>
+
+    <section class="bridge" aria-labelledby="bridge-title">
+      <h2 id="bridge-title">From my experience to this project</h2>
+      <table>
+        <caption class="sr-only">How existing experience maps to the skills shown here</caption>
+        <thead><tr><th scope="col">Five years with Ranorex and C#</th><th scope="col">Shown here with Playwright</th></tr></thead>
+        <tbody>
+          <tr><td>RanoreXPath and object repositories</td><td>Locators by role and label, a page object</td></tr>
+          <tr><td>Shared C# libraries for the tests</td><td>A typed API client and custom fixtures in TypeScript</td></tr>
+          <tr><td>Oracle test-data layer, setup and teardown</td><td>Test data created through the REST API, a fresh workspace per test</td></tr>
+          <tr><td>Business logic tested in PL/SQL</td><td>API and contract tests against an OpenAPI spec, plus Postman</td></tr>
+          <tr><td>Data-driven tests</td><td>A table of invalid input, each case its own test</td></tr>
+          <tr><td>Desktop and Android handheld apps</td><td>Chromium, Firefox, WebKit and an emulated phone</td></tr>
+          <tr><td>Owner of the nightly unattended runs</td><td>GitHub Actions on every push, HTML reports with traces</td></tr>
+          <tr><td>Accessible controls added to the app under test</td><td>axe accessibility scans and a keyboard-only test</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module">
+    try {
+      const s = await fetch("/reports/summary.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject()));
+      if (s.playwright) {
+        document.querySelector("#proof-pw").textContent = s.playwright.passed;
+        document.querySelector("#proof-failed").textContent = s.playwright.failed + (s.newman ? s.newman.failedAssertions : 0);
+      }
+      if (s.newman) document.querySelector("#proof-pm").textContent = s.newman.assertions;
+    } catch {}
+  </script>
+</body>
+</html>

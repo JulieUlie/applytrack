@@ -1,0 +1,727 @@
+{
+  "info": {
+    "name": "ApplyTrack API",
+    "description": "End-to-end walk through the ApplyTrack REST API. Run it top to bottom (Collection Runner or Newman): it creates its own workspace, chains ids through collection variables, checks status codes, headers, bodies and JSON schemas, and deletes the workspace at the end.\n\nDocs: https://applytrack.julietous.workers.dev/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "company",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// collection-level checks that run after every request",
+          "pm.test('responds within the time budget', () => {",
+          "  // budget comes from the environment, 2 s if not set",
+          "  pm.expect(pm.response.responseTime).to.be.below(Number(pm.environment.get('budgetMs') || 2000));",
+          "});",
+          "pm.test('has a request id header', () => {",
+          "  pm.response.to.have.header('x-request-id');",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Setup",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('service is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create workspace",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const ws = pm.response.json();",
+                  "pm.test('token has the documented format', () => pm.expect(ws.token).to.match(/^at_[a-f0-9]{32}$/));",
+                  "pm.test('expires in 30 days', () => {",
+                  "  const days = (Date.parse(ws.expiresAt) - Date.parse(ws.createdAt)) / 864e5;",
+                  "  pm.expect(days).to.be.within(29.9, 30.1);",
+                  "});",
+                  "// chain: every following request authenticates with this token",
+                  "pm.collectionVariables.set('token', ws.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seed\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/workspaces",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspaces"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Applications CRUD",
+      "item": [
+        {
+          "name": "Create application",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// unique test data per run, and today's date in the YYYY-MM-DD format the API expects",
+                  "pm.collectionVariables.set('company', `Postman Corp ${Date.now()}`);",
+                  "pm.collectionVariables.set('today', new Date().toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const schema = {",
+                  "  type: 'object',",
+                  "  required: ['id', 'company', 'role', 'status', 'appliedOn', 'location', 'link', 'notes', 'createdAt', 'updatedAt'],",
+                  "  properties: {",
+                  "    id: { type: 'string', pattern: '^app_[a-f0-9]{12}$' },",
+                  "    status: { enum: ['wishlist', 'applied', 'interview', 'offer', 'rejected'] },",
+                  "  },",
+                  "};",
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('body matches the schema', () => pm.response.to.have.jsonSchema(schema));",
+                  "pm.test('Location header points at the new item', () => {",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql(`/api/applications/${pm.response.json().id}`);",
+                  "});",
+                  "pm.collectionVariables.set('applicationId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"role\": \"QA Automation Engineer\",\n  \"status\": \"applied\",\n  \"appliedOn\": \"{{today}}\",\n  \"location\": \"Antwerp\",\n  \"link\": \"https://example.com/jobs/1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns the application that was created', () => {",
+                  "  const app = pm.response.json();",
+                  "  pm.expect(app.id).to.eql(pm.collectionVariables.get('applicationId'));",
+                  "  pm.expect(app.company).to.eql(pm.collectionVariables.get('company'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List applications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('count matches the number of items', () => pm.expect(body.count).to.eql(body.items.length));",
+                  "pm.test('contains the new application', () => {",
+                  "  pm.expect(body.items.map((a) => a.id)).to.include(pm.collectionVariables.get('applicationId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('only \"applied\" items come back', () => {",
+                  "  pm.response.json().items.forEach((a) => pm.expect(a.status).to.eql('applied'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications?status=applied",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "applied"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Move to interview",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const app = pm.response.json();",
+                  "pm.test('status and notes are updated', () => {",
+                  "  pm.expect(app.status).to.eql('interview');",
+                  "  pm.expect(app.notes).to.eql('First call went well');",
+                  "});",
+                  "pm.test('other fields are untouched', () => pm.expect(app.location).to.eql('Antwerp'));",
+                  "pm.test('updatedAt moved forward', () => pm.expect(Date.parse(app.updatedAt)).to.be.above(Date.parse(app.createdAt)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"interview\",\n  \"notes\": \"First call went well\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('counts the interview', () => {",
+                  "  const s = pm.response.json();",
+                  "  pm.expect(s.byStatus.interview).to.eql(1);",
+                  "  pm.expect(s.total).to.eql(1);",
+                  "  pm.expect(s.responseRate).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.response.to.have.status(204));",
+                  "pm.test('empty body', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get deleted application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('explains why', () => pm.expect(pm.response.json().error).to.eql('Application not found'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Negative cases",
+      "item": [
+        {
+          "name": "No token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('WWW-Authenticate header', () => pm.response.to.have.header('WWW-Authenticate'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validation errors",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 422', () => pm.response.to.have.status(422));",
+                  "const { fields } = pm.response.json();",
+                  "pm.test('one message per invalid field', () => {",
+                  "  pm.expect(fields).to.have.all.keys('company', 'role', 'status', 'link', 'salary');",
+                  "  pm.expect(fields.company).to.eql('Required');",
+                  "  pm.expect(fields.salary).to.eql('Unknown field');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"\",\n  \"status\": \"hired\",\n  \"link\": \"ftp://example.com\",\n  \"salary\": 5000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invalid JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('error message', () => pm.expect(pm.response.json().error).to.eql('Body must be valid JSON'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"company\": \"Acme\", ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unknown status filter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications?status=hired",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "hired"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Wrong method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 405', () => pm.response.to.have.status(405));",
+                  "pm.test('Allow header lists the valid methods', () => pm.expect(pm.response.headers.get('Allow')).to.eql('GET, PATCH, DELETE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"offer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications",
+                "{{applicationId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Teardown",
+      "item": [
+        {
+          "name": "Delete workspace",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workspace",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workspace"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Token no longer works",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.collectionVariables.unset('token');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stats"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

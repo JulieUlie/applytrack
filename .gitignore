@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+results/
+test-results/
+playwright-report/
+site/reports/playwright/
+site/reports/newman/

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Board · ApplyTrack</title>
+  <meta name="description" content="A small job application tracker with a REST API, tested end to end with Playwright and Postman.">
+  <meta property="og:title" content="ApplyTrack">
+  <meta property="og:description" content="Job application tracker, tested end to end with Playwright and Postman.">
+  <meta property="og:image" content="https://applytrack.julietous.workers.dev/og-20261117b.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://applytrack.julietous.workers.dev/board">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css?v=6">
+</head>
+<body class="screen">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="ApplyTrack home">
+      <img src="/favicon.svg" alt="" width="28" height="28"> ApplyTrack
+    </a>
+    <nav aria-label="Main"><a href="/">Overview</a><a href="/board" aria-current="page">Board</a><a href="/api">API</a><a href="/tests">Tests</a></nav>
+  </header>
+
+  <main class="shell">
+    <section class="workspace" aria-labelledby="page-title">
+      <div class="heading">
+        <div>
+          <h1 id="page-title">Applications</h1>
+          <p class="lede">Track your job applications. Every click calls a REST API, and the panel on the right shows how that is tested.</p>
+        </div>
+        <button type="button" class="btn primary" id="add-btn">Add application</button>
+      </div>
+
+      <div id="error-banner" class="banner" role="alert" hidden>
+        <span id="error-text">Something went wrong.</span>
+        <button type="button" class="btn line small" id="retry-btn">Try again</button>
+      </div>
+
+      <section aria-label="Overview" class="stats" id="stats"></section>
+
+      <div class="toolbar">
+        <label class="field search">
+          <span>Search</span>
+          <input type="search" id="search" placeholder="Company, role or place" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Sort by</span>
+          <select id="sort">
+            <option value="updated">Recently updated</option>
+            <option value="company">Company A–Z</option>
+            <option value="appliedOn">Date applied</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="sr-only" id="result-count" aria-live="polite"></p>
+
+      <div class="table-wrap" id="table-wrap">
+        <table id="apps-table" hidden>
+          <caption class="sr-only">Job applications</caption>
+          <thead>
+            <tr><th scope="col">Company</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Applied</th><th scope="col">Location</th><th scope="col"><span class="sr-only">Actions</span></th></tr>
+          </thead>
+          <tbody id="apps-body"></tbody>
+        </table>
+        <div class="empty" id="empty" hidden>
+          <h2 id="empty-title">No applications yet</h2>
+          <p id="empty-text">Add the first one, or load a few examples to look around.</p>
+          <button type="button" class="btn line" id="sample-btn">Load sample data</button>
+        </div>
+        <p class="loading" id="loading">Loading…</p>
+      </div>
+
+      <div class="pager">
+        <nav aria-label="Pages" class="pager-nav" id="pager" hidden>
+          <button type="button" class="btn line small" id="prev-page" aria-label="Previous page">‹</button>
+          <span id="page-info" aria-live="polite"></span>
+          <button type="button" class="btn line small" id="next-page" aria-label="Next page">›</button>
+        </nav>
+        <p id="workspace-info" class="ws-info">Private workspace</p>
+        <button type="button" class="btn link" id="reset-btn">Reset workspace</button>
+      </div>
+    </section>
+
+    <aside class="hood" id="hood" aria-labelledby="hood-title">
+      <div class="hood-head">
+        <h2 id="hood-title">Under the hood</h2>
+        <button type="button" class="btn link hood-close" id="hood-close">Close</button>
+      </div>
+
+      <div class="hood-block">
+        <h3><span class="tag rest">REST</span> What the board just asked the API</h3>
+        <ol class="calls" id="hood-calls"></ol>
+        <p class="hood-text" id="hood-rest">The board is only a client: it reads and changes data with HTTP calls to <code>/api</code>, the same calls you can make from Postman.</p>
+      </div>
+
+      <div class="hood-block">
+        <h3><span class="tag pw">Playwright</span> <span id="hood-test-title">How a test checks this</span></h3>
+        <pre class="code" id="hood-code"></pre>
+        <p class="hood-text" id="hood-why"></p>
+      </div>
+
+      <a class="hood-more" href="/tests">All tests and reports →</a>
+    </aside>
+    <button type="button" class="btn line hood-toggle" id="hood-open" aria-controls="hood" aria-expanded="false">Under the hood</button>
+  </main>
+
+  <dialog id="app-dialog" aria-labelledby="dialog-title">
+    <form id="app-form" method="dialog" novalidate>
+      <h2 id="dialog-title">Add application</h2>
+      <div class="grid">
+        <label class="field"><span>Company *</span><input name="company" maxlength="120" autocomplete="organization"><small class="err" data-for="company"></small></label>
+        <label class="field"><span>Role *</span><input name="role" maxlength="120"><small class="err" data-for="role"></small></label>
+        <label class="field"><span>Status</span>
+          <select name="status">
+            <option value="wishlist">Wishlist</option>
+            <option value="applied" selected>Applied</option>
+            <option value="interview">Interview</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+          </select><small class="err" data-for="status"></small></label>
+        <label class="field"><span>Applied on</span><input name="appliedOn" type="date"><small class="err" data-for="appliedOn"></small></label>
+        <label class="field"><span>Location</span><input name="location" maxlength="120"><small class="err" data-for="location"></small></label>
+        <label class="field"><span>Link to posting</span><input name="link" type="url" placeholder="https://"><small class="err" data-for="link"></small></label>
+        <label class="field wide"><span>Notes</span><textarea name="notes" rows="2" maxlength="1200"></textarea><small class="err" data-for="notes"></small></label>
+      </div>
+      <p class="form-error" id="form-error" role="alert"></p>
+      <div class="actions">
+        <button type="button" class="btn line" id="cancel-btn">Cancel</button>
+        <button type="submit" class="btn primary" id="save-btn">Save application</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <h2 id="confirm-title">Delete application?</h2>
+    <p id="confirm-text"></p>
+    <div class="actions">
+      <button type="button" class="btn line" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn danger" id="confirm-ok">Delete</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/app.js?v=4"></script>
+</body>
+</html>

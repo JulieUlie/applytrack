@@ -1,0 +1,35 @@
+{
+  "name": "applytrack",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Job application tracker with a REST API, tested end to end with Playwright and Postman/Newman.",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --ip 127.0.0.1",
+    "deploy": "wrangler deploy",
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=chromium --project=firefox --project=webkit --project=mobile",
+    "test:headed": "playwright test --project=chromium --headed",
+    "test:ui-mode": "playwright test --ui",
+    "postman": "newman run postman/applytrack.postman_collection.json -e postman/local.postman_environment.json -r cli,htmlextra,json --reporter-htmlextra-export site/reports/newman/index.html --reporter-htmlextra-title \"ApplyTrack API - Newman run\" --reporter-json-export results/newman.json",
+    "postman:live": "newman run postman/applytrack.postman_collection.json -e postman/live.postman_environment.json -r cli",
+    "report:summary": "node scripts/summary.mjs",
+    "test:all": "node scripts/run-all.mjs",
+    "build:postman": "node scripts/build-collection.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "newman": "^6.2.3",
+    "newman-reporter-htmlextra": "^1.23.1",
+    "wrangler": "^4.163.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261116.1": true
+  }
+}
