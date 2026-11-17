@@ -451,3 +451,5 @@ body.screen { overflow-x: hidden; }
   .brand img { width: 30px; height: 30px; }
   nav a { padding: 6px 8px; font-size: 15px; }
 }
+.proof dd { min-width: 3.2ch; }
+.metric b { min-width: 3ch; }

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=6">
+  <link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body class="screen">
   <header class="topbar">
@@ -115,6 +115,7 @@ pm.collectionVariables.set(
 
   <script type="module" src="/tabs.js?v=2"></script>
   <script type="module">
+    import { countUp } from "/count.js?v=1";
     const fmt = (ms) => (ms >= 60000 ? `${(ms / 60000).toFixed(1)} min` : `${(ms / 1000).toFixed(1)} s`);
     const metric = (value, label, cls = "") => `<div class="metric ${cls}"><b>${value}</b><span>${label}</span></div>`;
     try {
@@ -129,6 +130,7 @@ pm.collectionVariables.set(
         n && metric(`${n.assertions - n.failedAssertions}/${n.assertions}`, "Postman assertions passed", n.failedAssertions ? "bad" : "ok"),
         n && metric(n.requests, "Postman requests"),
       ].filter(Boolean).join("");
+      for (const b of document.querySelectorAll("#metrics b")) countUp(b, b.textContent);
     } catch {
       document.querySelector("#run-meta").textContent = "No published run yet.";
     }

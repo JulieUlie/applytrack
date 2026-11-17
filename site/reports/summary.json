@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-11-17T09:18:40.882Z",
+  "generatedAt": "2026-11-17T09:24:29.966Z",
   "target": "https://applytrack.julietous.workers.dev",
   "playwright": {
-    "passed": 173,
+    "passed": 179,
     "failed": 0,
     "flaky": 0,
     "skipped": 0,
-    "durationMs": 59485,
+    "durationMs": 65487,
     "projects": {
       "api": 51,
-      "chromium": 41,
-      "firefox": 35,
-      "webkit": 35,
+      "chromium": 43,
+      "firefox": 37,
+      "webkit": 37,
       "mobile": 11
     }
   },
@@ -19,6 +19,6 @@
     "requests": 17,
     "assertions": 69,
     "failedAssertions": 0,
-    "durationMs": 2190
+    "durationMs": 2085
   }
 }

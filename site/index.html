@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=6">
+  <link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body class="screen">
   <header class="topbar">
@@ -35,9 +35,9 @@
         <a class="btn line" href="/api">Explore the API</a>
       </div>
       <dl class="proof" id="proof" aria-label="Latest test run">
-        <div><dt>Playwright tests</dt><dd id="proof-pw">125</dd></div>
-        <div><dt>Postman assertions</dt><dd id="proof-pm">69</dd></div>
-        <div><dt>Browsers + phone</dt><dd>3+1</dd></div>
+        <div><dt>Playwright tests</dt><dd id="proof-pw">0</dd></div>
+        <div><dt>Postman assertions</dt><dd id="proof-pm">0</dd></div>
+        <div><dt>Browsers + phone</dt><dd id="proof-browsers">0+0</dd></div>
         <div><dt>Failed</dt><dd id="proof-failed">0</dd></div>
       </dl>
       <p class="more"><a href="https://github.com/JulieUlie/applytrack">Source on GitHub</a> · <a href="https://jt.julietous.workers.dev/">Portfolio</a></p>
@@ -63,14 +63,18 @@
   </main>
 
   <script type="module">
+    import { countUp } from "/count.js?v=1";
+    // fallback if the summary cannot be loaded: the numbers of the last published run
+    let pw = 179, pm = 69, failed = 0;
     try {
       const s = await fetch("/reports/summary.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject()));
-      if (s.playwright) {
-        document.querySelector("#proof-pw").textContent = s.playwright.passed;
-        document.querySelector("#proof-failed").textContent = s.playwright.failed + (s.newman ? s.newman.failedAssertions : 0);
-      }
-      if (s.newman) document.querySelector("#proof-pm").textContent = s.newman.assertions;
+      if (s.playwright) { pw = s.playwright.passed; failed = s.playwright.failed; }
+      if (s.newman) { pm = s.newman.assertions; failed += s.newman.failedAssertions; }
     } catch {}
+    countUp(document.querySelector("#proof-pw"), pw);
+    countUp(document.querySelector("#proof-pm"), pm);
+    countUp(document.querySelector("#proof-browsers"), "3+1");
+    countUp(document.querySelector("#proof-failed"), failed);
   </script>
 </body>
 </html>

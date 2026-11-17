@@ -40,7 +40,7 @@ The suite covers what job postings for QA and test automation engineers ask for:
 | Accessibility | `tests/ui/accessibility.spec.ts` (axe-core, WCAG 2.1 AA, keyboard-only flow) |
 | Performance awareness | `tests/api/performance.spec.ts`, response-time budget on every Postman request |
 
-Latest run against the live app: 173 Playwright tests (51 API, 41 Chromium, 35 Firefox, 35 WebKit, 11 mobile) and 69 Postman assertions over 17 requests, all green. The UI tests also check that no page scrolls or is wider than the screen: every page fits one screen and pages through long lists instead.
+Latest run against the live app: 179 Playwright tests (51 API, 43 Chromium, 37 Firefox, 37 WebKit, 11 mobile) and 69 Postman assertions over 17 requests, all green. The UI tests also check that no page scrolls or is wider than the screen: every page fits one screen and pages through long lists instead.
 
 ## Structure
 
