@@ -29,6 +29,37 @@ test.describe('Under the hood panel', () => {
   });
 });
 
+test.describe('Under the hood as a sheet (phones and tablets)', () => {
+  test('opens with its button and closes with Escape @mobile', async ({ board, page }) => {
+    if ((page.viewportSize()?.width ?? 0) > 900) await page.setViewportSize({ width: 820, height: 900 });
+    await board.goto();
+    const toggle = page.getByRole('button', { name: 'Under the hood' });
+    const hood = page.getByRole('complementary', { name: 'Under the hood' });
+    await expect(hood).toBeHidden();
+
+    await toggle.click();
+    await expect(hood).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(hood.getByRole('button', { name: 'Close' })).toBeFocused();
+
+    await page.keyboard.press('Escape');
+
+    await expect(hood).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toBeFocused();
+  });
+
+  test('with reduced motion the sheet appears without sliding', async ({ board, page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 820, height: 900 });
+    await board.goto();
+
+    const duration = await page.locator('#hood').evaluate((e) => getComputedStyle(e).transitionDuration);
+
+    expect(duration.split(',').every((d) => parseFloat(d) === 0)).toBe(true);
+  });
+});
+
 test.describe('Paging instead of scrolling', () => {
   test('splits a long list over pages that fit the screen', async ({ board, api, page }) => {
     for (let i = 0; i < 25; i++) await api.seed(anApplication({ company: `Page Co ${String(i).padStart(2, '0')}` }));

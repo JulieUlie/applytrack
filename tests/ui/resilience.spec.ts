@@ -13,7 +13,7 @@ test.describe('When the server misbehaves', () => {
     await board.goto();
 
     await expect(board.errorBanner).toBeVisible();
-    await expect(board.errorBanner).toContainText('Internal error');
+    await expect(board.errorBanner).toContainText('The server answered with an error: Internal error');
 
     fail = false;
     await board.errorBanner.getByRole('button', { name: 'Try again' }).click();
@@ -28,6 +28,32 @@ test.describe('When the server misbehaves', () => {
     await board.goto();
 
     await expect(board.errorBanner).toBeVisible();
+    await expect(board.errorBanner).toContainText('Could not reach the server');
+  });
+
+  test('a slow, older search answer never overwrites a newer one', async ({ board, api, page }) => {
+    const slow = await api.seed(anApplication({ company: 'Slowpoke Labs' }));
+    const fast = await api.seed(anApplication({ company: 'Quickstep Labs' }));
+    // the first search is held back on the network until after the second one has answered
+    let releaseSlow!: () => void;
+    const held = new Promise<void>((r) => (releaseSlow = r));
+    await page.route('**/api/applications?*q=Slowpoke*', async (route) => { await held; await route.continue(); });
+    await board.goto();
+
+    const slowRequest = page.waitForRequest((r) => r.url().includes('q=Slowpoke'));
+    await board.search.fill('Slowpoke');
+    await slowRequest;
+    await board.search.fill('Quickstep');
+    await expect(board.rows).toHaveCount(1);
+    await expect(board.row(fast.company)).toBeVisible();
+
+    const slowResponse = page.waitForResponse((r) => r.url().includes('q=Slowpoke'));
+    releaseSlow();
+    await slowResponse;
+
+    await expect(board.row(slow.company)).toHaveCount(0);
+    await expect(board.row(fast.company)).toBeVisible();
+    await expect(board.search).toHaveValue('Quickstep');
   });
 
   test('renders whatever the API returns (stubbed response)', async ({ board, page }) => {

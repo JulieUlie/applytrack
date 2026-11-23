@@ -190,6 +190,11 @@ async function newWorkspace(seed) {
 }
 
 // ---------- rendering ----------
+// today's date in the visitor's own time zone (toISOString() is UTC, which is still "yesterday" just after midnight in Europe)
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 const fmtDate = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "—");
 
 function el(tag, props = {}, ...children) {
@@ -224,7 +229,7 @@ function rowFor(a) {
     el("td", { "data-label": "Company", class: "company" },
       el("strong", { title: a.company }, a.company),
       a.link ? el("a", { href: a.link, target: "_blank", rel: "noopener noreferrer", class: "posting", "aria-label": `Job posting for ${a.company} (opens in new tab)` }, "↗") : null),
-    el("td", { "data-label": "Role" }, a.role),
+    el("td", { "data-label": "Role", title: a.role }, a.role),
     el("td", { "data-label": "Status" }, select),
     el("td", { "data-label": "Applied", class: "mono" }, fmtDate(a.appliedOn)),
     el("td", { "data-label": "Location" }, a.location || "—"),
@@ -274,7 +279,9 @@ function renderRows() {
 }
 
 function showError(err) {
-  $("#error-text").textContent = err ? `Could not reach the server: ${err.message}` : "";
+  // an HTTP error means the server answered; a thrown fetch means it could not be reached at all
+  const text = !err ? "" : err instanceof ApiError ? `The server answered with an error: ${err.message}` : `Could not reach the server: ${err.message}`;
+  $("#error-text").textContent = text;
   $("#error-banner").hidden = !err;
 }
 
@@ -288,12 +295,17 @@ function toast(msg) {
 }
 
 // ---------- data ----------
-async function load(lesson = "load") {
+// Typing fires a request per pause: only the newest request may draw the board, so a slow,
+// older answer can never overwrite the results of a newer search or filter.
+let loadSeq = 0;
+async function load(lesson = "load", retried = false) {
+  const seq = ++loadSeq;
   const qs = new URLSearchParams({ sort: state.sort });
   if (state.status) qs.set("status", state.status);
   if (state.q) qs.set("q", state.q);
   try {
     const [list, stats] = await Promise.all([api(`/api/applications?${qs}`), api("/api/stats")]);
+    if (seq !== loadSeq) return;
     state.items = list.items;
     state.stats = stats;
     showError(null);
@@ -302,7 +314,12 @@ async function load(lesson = "load") {
     fitPageSize();
     explain(lesson);
   } catch (err) {
-    if (err.status === 401) { await newWorkspace(false); return load("workspace"); }
+    if (seq !== loadSeq) return;
+    // the stored workspace expired: start a new one, but only once, never in a loop
+    if (err.status === 401 && !retried) {
+      try { await newWorkspace(false); } catch (e) { showError(e); explain("error"); return; }
+      return load("workspace", true);
+    }
     showError(err);
     explain("error");
   } finally {
@@ -358,7 +375,8 @@ function openForm(app = null) {
   $("#dialog-title").textContent = app ? `Edit ${app.company}` : "Add application";
   $("#save-btn").textContent = app ? "Save changes" : "Save application";
   if (app) for (const name of ["company", "role", "status", "appliedOn", "location", "link", "notes"]) form.elements[name].value = app[name] || "";
-  else form.elements.appliedOn.value = new Date().toISOString().slice(0, 10);
+  else form.elements.appliedOn.value = localToday();
+  form.elements.appliedOn.max = localToday(); // the API refuses dates in the future
   dialog.showModal();
   form.elements.company.focus();
 }
@@ -472,8 +490,13 @@ $("#next-page").addEventListener("click", () => { state.page++; renderRows(); ex
 
 const hood = $("#hood");
 const hoodOpen = $("#hood-open");
+const closeHood = () => { hood.classList.remove("open"); hoodOpen.setAttribute("aria-expanded", "false"); hoodOpen.focus(); };
 hoodOpen.addEventListener("click", () => { hood.classList.add("open"); hoodOpen.setAttribute("aria-expanded", "true"); $("#hood-close").focus(); });
-$("#hood-close").addEventListener("click", () => { hood.classList.remove("open"); hoodOpen.setAttribute("aria-expanded", "false"); hoodOpen.focus(); });
+$("#hood-close").addEventListener("click", closeHood);
+// on phones and tablets the panel is a sheet: Escape closes it, like the dialogs
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && hood.classList.contains("open") && !document.querySelector("dialog[open]")) { e.preventDefault(); closeHood(); }
+});
 
 let resizeTimer;
 window.addEventListener("resize", () => {

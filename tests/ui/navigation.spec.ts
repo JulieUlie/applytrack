@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures';
+import { anApplication } from '../support/data';
 
 test.describe('Navigation', () => {
   test('the overview states the purpose and leads to every page @mobile', async ({ board, page }) => {
@@ -88,10 +89,32 @@ test.describe('Navigation', () => {
 
     expect(res?.status()).toBe(404);
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'Back to the overview' })).toHaveAttribute('href', '/');
+    await page.getByRole('main').getByRole('link', { name: 'Open the board' }).click();
+    await expect(page).toHaveURL(/\/board$/);
   });
 });
 
 test.describe('Layout', () => {
+  test('on a 1024px laptop the board columns stay readable next to the panel', async ({ board, api, page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await api.seed(anApplication({ company: 'Havenlink Logistics', status: 'interview' }));
+    await board.goto();
+
+    const row = board.row('Havenlink Logistics');
+    await expect(row).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Under the hood' })).toBeVisible();
+    // no column header or company name is cut off ("Compan…"), the status pill fits its column
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('#apps-table th, #apps-table td.company, #apps-table td select')]
+        .filter((e) => e.offsetWidth > 0 && e.scrollWidth > e.clientWidth + 1)
+        .map((e) => e.textContent?.trim()),
+    );
+    expect(clipped).toEqual([]);
+    // the date and place move to the edit form at this width; the data is still there
+    await expect(row).toContainText('Antwerp');
+  });
+
   for (const path of ['/', '/board', '/api', '/tests']) {
     test(`${path} is never wider than the screen @mobile`, async ({ page }) => {
       await page.goto(path);

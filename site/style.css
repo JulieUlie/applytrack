@@ -461,3 +461,20 @@ body.screen { overflow-x: hidden; }
 .pm-run .ok { color: var(--offer); font-weight: 500; }
 
 @media (max-width: 720px) { .pm-run { grid-template-columns: minmax(0, 1fr); gap: 4px; } .pm-run .btn { justify-self: start; margin-bottom: 6px; } }
+
+/* laptops and landscape tablets (901-1199px): the side panel leaves too little room for six columns,
+   so the board shows company, role, status and actions; date and place are in the edit form */
+@media (min-width: 901px) and (max-width: 1199px) {
+  .shell { grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; }
+  #apps-table th:nth-child(4), #apps-table td:nth-child(4),
+  #apps-table th:nth-child(5), #apps-table td:nth-child(5) { display: none; }
+  #apps-table th:nth-child(1) { width: 33%; }
+  #apps-table th:nth-child(3) { width: 136px; }
+  #apps-table th:nth-child(2) { width: auto; }
+  #apps-table th:nth-child(6) { width: 140px; }
+}
+
+/* reduced motion: no sliding sheet, toast or underline, they simply appear */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; scroll-behavior: auto !important; }
+}

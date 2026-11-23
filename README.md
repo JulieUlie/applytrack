@@ -40,7 +40,20 @@ The suite covers what job postings for QA and test automation engineers ask for:
 | Accessibility | `tests/ui/accessibility.spec.ts` (axe-core, WCAG 2.1 AA, keyboard-only flow) |
 | Performance awareness | `tests/api/performance.spec.ts`, response-time budget on every Postman request |
 
-Latest run against the live app: 179 Playwright tests (51 API, 43 Chromium, 37 Firefox, 37 WebKit, 11 mobile) and 69 Postman assertions over 17 requests, all green. The UI tests also check that no page scrolls or is wider than the screen: every page fits one screen and pages through long lists instead.
+Latest run against the live app: 196 Playwright tests (51 API, 48 Chromium, 42 Firefox, 42 WebKit, 13 mobile) and 69 Postman assertions over 17 requests, all green. The UI tests also check that no page scrolls or is wider than the screen: every page fits one screen and pages through long lists instead.
+
+## What changed in v2
+
+A polish release: no new features, but fixes found by looking at the app again at phone, tablet and laptop widths. Each fix has its own regression test (17 new Playwright tests).
+
+- **Readable board on 1024px laptops and landscape tablets.** With the side panel open, six columns left the company and role unreadable ("Compan…"). Between 901 and 1199px the board now shows company, role, status and actions; date and place stay in the edit form.
+- **No stale search results.** A slow, older search answer could overwrite the results of a newer one. Only the newest request may now draw the board (tested by holding one response back with `page.route`).
+- **Escape closes the *Under the hood* sheet** on phones and tablets and returns focus to its button, like the dialogs.
+- **Date picker:** starts on today in the visitor's own time zone (it used the UTC date, which is still yesterday just after midnight in Belgium) and offers no future dates, which the API refuses anyway.
+- **Clearer error banner:** "The server answered with an error" when the API returns an error, "Could not reach the server" only when the network is down.
+- **Reduced motion:** the sheet, toast and filter underline no longer animate when the system asks for less motion.
+- **404 page:** the button said "Back to the board" but led to the overview; it now offers both.
+- An expired workspace token is replaced once, never in a loop.
 
 ## Structure
 

@@ -7,7 +7,7 @@
   <meta name="description" content="A showcase project by Julie Toussaint: Playwright, TypeScript and REST API testing on a small job application tracker, built around what QA automation roles ask for.">
   <meta property="og:title" content="ApplyTrack · Playwright and API testing showcase">
   <meta property="og:description" content="Playwright, TypeScript and REST API testing on a small job application tracker, built around what QA automation roles ask for.">
-  <meta property="og:image" content="https://applytrack.julietous.workers.dev/og-20261117b.png">
+  <meta property="og:image" content="https://applytrack.julietous.workers.dev/og-20261123.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:url" content="https://applytrack.julietous.workers.dev/">
@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=9">
+  <link rel="stylesheet" href="/style.css?v=13">
 </head>
 <body class="screen">
   <header class="topbar">
@@ -65,7 +65,7 @@
   <script type="module">
     import { countUp } from "/count.js?v=1";
     // fallback if the summary cannot be loaded: the numbers of the last published run
-    let pw = 179, pm = 69, failed = 0;
+    let pw = 196, pm = 69, failed = 0;
     try {
       const s = await fetch("/reports/summary.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject()));
       if (s.playwright) { pw = s.playwright.passed; failed = s.playwright.failed; }

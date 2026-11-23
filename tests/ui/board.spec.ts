@@ -166,6 +166,21 @@ test.describe('Board', () => {
     await expect(link).toHaveAttribute('rel', /noopener/);
   });
 
+  test('the date picker starts on today and offers no future dates @mobile', async ({ board, page }) => {
+    await board.goto();
+    // "today" as the visitor's own calendar shows it, not the UTC date
+    const today = await page.evaluate(() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+
+    await board.openAddForm();
+
+    const date = board.dialog.getByLabel('Applied on');
+    await expect(date).toHaveValue(today);
+    await expect(date).toHaveAttribute('max', today);
+  });
+
   test('closes the form with Escape without saving', async ({ board, api, page }) => {
     await board.goto();
     await board.openAddForm();
